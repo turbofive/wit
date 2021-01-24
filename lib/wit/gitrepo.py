@@ -82,9 +82,11 @@ class GitRepo:
         log.debug('{} at url {}, web:{}, org:{}, repo:{}'.format(name, source, web, org, repo))
         if not GitRepo.is_git_repo(self.path):
             self.clone(source, name)
-        elif not remote in self.list_remote():
-            self.remote_add(remote, source)
-            self.fetch(remote, name)
+        else:
+            origin = self.assign_remote_from_source(self.get_remote())
+            if not remote in self.list_remote() or remote != origin:
+                self.remote_add(remote, source)
+                self.fetch(remote, name)
 
         ## self.fetch(source, name)
 
