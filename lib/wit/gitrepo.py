@@ -68,11 +68,25 @@ class GitRepo:
         self.path = tmp
         return proc.returncode != 0
 
+    def assign_remote_from_source(self, source):
+        url = re.search(r'[@/]([^:/]+).com[:/](.*)/([^/.]+)(.git|)', source)
+        if not url:
+            log.info("{} with url {} CANNOT be handled".format(name, source))
+            sys.exit()
+        return url.group(1), url.group(2), url.group(3)
+
     # name is needed for generating error messages
     def download(self, source, name):
+        web, org, repo = self.assign_remote_from_source(source)
+        remote = web + '-' + org.replace('/', '-')
+        log.debug('{} at url {}, web:{}, org:{}, repo:{}'.format(name, source, web, org, repo))
         if not GitRepo.is_git_repo(self.path):
             self.clone(source, name)
-        self.fetch(source, name)
+        elif not remote in self.list_remote():
+            self.remote_add(remote, source)
+            self.fetch(remote, name)
+
+        ## self.fetch(source, name)
 
     # name is needed for generating error messages
     def clone(self, source, name):
@@ -110,7 +124,7 @@ class GitRepo:
         # in case source is a remote and we want a commit
         proc = self._git_command('fetch', source)
         # in case source is a file path and we want, for example, origin/master
-        self._git_command('fetch', '--all')
+        #self._git_command('fetch', '--all')
         try:
             self._git_check(proc)
         except GitError:
@@ -187,6 +201,23 @@ class GitRepo:
         proc = self._git_command('remote', 'get-url', 'origin')
         self._git_check(proc)
         return proc.stdout.rstrip()
+
+    def remote_add(self, remote, source):
+        proc = self._git_command('remote', 'add', remote, source)
+        self._git_check(proc)
+
+    def list_remote(self):
+        proc = self._git_command('remote', 'show')
+        self._git_check(proc)
+        return proc.stdout.rstrip().split('\n')
+
+    def get_remote_url(self, remote):
+        proc = self._git_command('remote', 'get-url', remote)
+        self._git_check(proc)
+        return proc.stdout.rstrip()
+
+    def list_remote_url(self):
+        return [self.get_remote_url(r) for r in self.list_remote()]
 
     def set_origin(self, source):
         proc = self._git_command('remote', 'set-url', 'origin', source)
