@@ -84,7 +84,8 @@ class GitRepo:
             self.clone(source, name)
         else:
             origin = self.assign_remote_from_source(self.get_remote())
-            if not remote in self.list_remote() or remote != origin:
+            if not remote in self.list_remote() and remote != origin:
+                print("current remote is {} and list is {} in? {}".format(remote, self.list_remote(), remote in self.list_remote()))
                 self.remote_add(remote, source)
                 self.fetch(remote, name)
 
